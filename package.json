@@ -1,37 +1,106 @@
 {
-	"name": "nova-fetch-web",
-	"version": "0.1.0",
-	"private": true,
-	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
-		"start": "next start",
-		"lint": "eslint"
-	},
-	"dependencies": {
-		"@gsap/react": "^2.1.2",
-		"@radix-ui/react-slot": "^1.3.3",
-		"clsx": "^2.1.1",
-		"framer-motion": "^12.42.2",
-		"gsap": "^3.15.0",
-		"lucide-react": "^1.26.0",
-		"next": "16.2.11",
-		"ogl": "^1.0.11",
-		"react": "19.2.4",
-		"react-dom": "19.2.4",
-		"swr": "^2.4.2",
-		"tailwind-merge": "^3.6.0"
-	},
-	"devDependencies": {
-		"@tailwindcss/postcss": "^4",
-		"@types/node": "^20",
-		"@types/react": "^19",
-		"@types/react-dom": "^19",
-		"eslint": "^9",
-		"eslint-config-next": "16.2.11",
-		"jsrepo": "^3.8.1",
-		"shadcn": "^4.14.1",
-		"tailwindcss": "^4",
-		"typescript": "^5"
-	}
+  "name": "novafetch",
+  "version": "1.0.0",
+  "description": "An Electron application with React and TypeScript",
+  "main": "./out/main/index.js",
+  "author": "example.com",
+  "homepage": "https://electron-vite.org",
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "eslint --cache .",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "start": "electron-vite preview",
+    "dev": "electron-vite dev",
+    "dist": "electron-builder",
+    "build": "npm run typecheck && electron-vite build",
+    "postinstall": "electron-builder install-app-deps",
+    "build:unpack": "npm run build && electron-builder --dir",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:linux": "electron-vite build && electron-builder --linux"
+  },
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "@electron-toolkit/preload": "^3.0.2",
+    "@electron-toolkit/utils": "^4.0.0",
+    "axios": "^1.18.1",
+    "clsx": "^2.1.1",
+    "electron-updater": "^6.3.9",
+    "execa": "^10.0.0",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^1.25.0",
+    "nanoid": "^6.0.0",
+    "react-icons": "^5.7.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@electron-toolkit/eslint-config-prettier": "^3.0.0",
+    "@electron-toolkit/eslint-config-ts": "^3.1.0",
+    "@electron-toolkit/tsconfig": "^2.0.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.19.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "electron": "^39.2.6",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^5.0.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "prettier": "^3.7.4",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6"
+  },
+  "build": {
+    "appId": "com.novafetch.app",
+    "productName": "NovaFetch",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico",
+      "executableName": "NovaFetch"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NovaFetch",
+      "uninstallDisplayName": "NovaFetch"
+    },
+    "artifactName": "NovaFetch-${version}-Setup.${ext}",
+    "asar": true,
+    "compression": "maximum"
+  }
 }
