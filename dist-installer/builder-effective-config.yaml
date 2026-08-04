@@ -1,0 +1,34 @@
+directories:
+  output: dist-installer
+  buildResources: resources
+appId: com.novafetch.app
+productName: NovaFetch
+files:
+  - filter:
+      - out/**/*
+      - resources/**/*
+      - package.json
+extraResources:
+  - from: resources
+    to: resources
+    filter:
+      - '**/*'
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.ico
+  executableName: NovaFetch
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: NovaFetch
+  uninstallDisplayName: NovaFetch
+artifactName: NovaFetch-${version}-Setup.${ext}
+asar: true
+compression: maximum
+electronVersion: 39.8.10

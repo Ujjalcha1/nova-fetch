@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Responsive download list grid ────────────────────────────── */
+.download-grid {
+  display: grid;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Full (>= 1280px) — all columns */
+@media (min-width: 1280px) {
+  .download-grid {
+    grid-template-columns: 40px 72px minmax(200px,1fr) 130px 160px 110px 150px 100px;
+  }
+}
+
+/* Semi (1024px – 1279px) — hide ETA */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .download-grid {
+    grid-template-columns: 36px 56px minmax(160px,1fr) 120px 140px 100px 130px;
+  }
+}
+
+/* Compact (900px – 1023px) — hide Progress, Speed, Size, ETA */
+@media (min-width: 900px) and (max-width: 1023px) {
+  .download-grid {
+    grid-template-columns: 36px 48px minmax(120px,1fr) 110px;
+  }
+}
+
+/* Narrow (768px – 899px) — hide Progress, Speed, Size, ETA */
+@media (min-width: 768px) and (max-width: 899px) {
+  .download-grid {
+    grid-template-columns: 32px 40px minmax(100px,1fr) 100px;
+  }
+}
+
+/* Minimum Electron (< 768px) — same as narrow but tighter */
+@media (max-width: 767px) {
+  .download-grid {
+    grid-template-columns: 28px 36px minmax(80px,1fr) 90px;
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.animate-progress-pulse {
+  animation: progress-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes context-menu-in {
+  from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.context-menu-in {
+  animation: context-menu-in 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes progress-celebrate {
+  0%   { box-shadow: 0 0 0   0   rgba(74, 222, 128, 0); }
+  40%  { box-shadow: 0 0 12px 4px rgba(74, 222, 128, 0.3); }
+  100% { box-shadow: 0 0 0   0   rgba(74, 222, 128, 0); }
+}
+
+.progress-celebrate {
+  animation: progress-celebrate 600ms ease-out forwards;
+}
