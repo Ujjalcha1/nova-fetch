@@ -133,3 +133,10 @@ dist
 .vscode
 
 release/
+dist-installer/
+out/
+build/
+*.blockmap
+latest.yml
+builder-debug.yml
+builder-effective-config.yaml
