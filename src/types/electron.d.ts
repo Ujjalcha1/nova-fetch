@@ -39,7 +39,7 @@ declare global {
   interface Window {
     electronAPI: {
       download: {
-        start(options: { id: string; url: string; outputPath: string; format?: string; noPlaylist?: boolean }): Promise<boolean>
+        start(options: { id: string; url: string; outputPath: string; format?: string; noPlaylist?: boolean; filename?: string }): Promise<boolean>
 
         pause(id: string): Promise<void>
 

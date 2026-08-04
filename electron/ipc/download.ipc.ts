@@ -21,6 +21,10 @@ import { pipelineLog } from '../services/downloader/pipelineLogger'
 import { cleanupThumbnail, cleanupAllThumbnails, generateThumbnail } from '../services/downloader/thumbnailManager'
 import { SettingsService } from '../services/settingsService'
 import { DownloadStoreService } from '../services/downloader/downloadStoreService'
+import {
+  FALLBACK_FILENAME,
+  resolveHeaderFilename
+} from '../services/downloader/httpFilename'
 
 export function registerDownloadIpc(): void {
   const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
@@ -78,11 +82,16 @@ export function registerDownloadIpc(): void {
   /**
    * Extract response metadata from HTTP headers into the return shape.
    */
-  function parseResponseMetadata(res: http.IncomingMessage, finalUrl: string): {
+  function parseResponseMetadata(
+    res: http.IncomingMessage,
+    finalUrl: string,
+    originalUrl: string
+  ): {
     ok: boolean
     status: number
     headers: Record<string, string>
     filename: string
+    filenameFromContentDisposition: boolean
     contentLength: number
     contentType: string
   } {
@@ -97,32 +106,22 @@ export function registerDownloadIpc(): void {
     const contentLength = parseInt(res.headers['content-length'] ?? '0', 10) || 0
     const contentType = res.headers['content-type'] || 'application/octet-stream'
 
-    // Try Content-Disposition first
-    let filename = ''
-    const cd = res.headers['content-disposition']
-    if (cd) {
-      const cdStr = Array.isArray(cd) ? cd.join('') : cd
-      const fnMatch = cdStr.match(/filename\*?=(?:UTF-8'')?([^;\s"']+)/i)
-      if (fnMatch) {
-        filename = decodeURIComponent(fnMatch[1].trim())
-      }
-    }
-    if (!filename) {
-      try {
-        const parsedUrl = new URL(finalUrl)
-        const segs = parsedUrl.pathname.split('/').filter(Boolean)
-        if (segs.length > 0) filename = decodeURIComponent(segs[segs.length - 1])
-      } catch {
-        // URL parsing failed — fall back to the generic filename below
-      }
-    }
-    if (!filename) filename = 'download'
+    // Priority chain (httpFilename.ts): Content-Disposition → final URL
+    // pathname → original URL pathname → 'download.bin'. The flag tells the
+    // caller whether the name really came from Content-Disposition — if not,
+    // a GET probe is needed because CDNs often send the header only on GET.
+    const { filename, fromContentDisposition } = resolveHeaderFilename(
+      res.headers['content-disposition'],
+      finalUrl,
+      originalUrl
+    )
 
     return {
       ok: statusCode >= 200 && statusCode < 300,
       status: statusCode,
       headers,
       filename,
+      filenameFromContentDisposition: fromContentDisposition,
       contentLength,
       contentType,
     }
@@ -142,6 +141,7 @@ export function registerDownloadIpc(): void {
       status: 0,
       headers: {} as Record<string, string>,
       filename: '',
+      filenameFromContentDisposition: false,
       contentLength: 0,
       contentType: '',
     }
@@ -150,11 +150,13 @@ export function registerDownloadIpc(): void {
       method: 'HEAD' | 'GET',
       currentUrl: string,
       redirectCount = 0,
+      originalUrl = currentUrl,
     ): Promise<{
       ok: boolean
       status: number
       headers: Record<string, string>
       filename: string
+      filenameFromContentDisposition: boolean
       contentLength: number
       contentType: string
     }> {
@@ -178,14 +180,17 @@ export function registerDownloadIpc(): void {
                 if (location) {
                   res.resume() // drain the response
                   const nextUrl = new URL(location, currentUrl).toString()
-                  resolve(doRequest(method, nextUrl, redirectCount + 1))
+                  resolve(doRequest(method, nextUrl, redirectCount + 1, originalUrl))
                   return
                 }
               }
 
-              const result = parseResponseMetadata(res, currentUrl)
+              const result = parseResponseMetadata(res, currentUrl, originalUrl)
 
-              // For HEAD that failed or returned no filename, fall back to GET
+              // Fall back to GET when HEAD failed or yielded no
+              // Content-Disposition name — the GET response is where CDNs
+              // usually send the real filename (Googleusercontent, S3, R2),
+              // so a HEAD-derived URL-token name is never trusted as final.
               if (
                 method === 'HEAD' &&
                 (result.status === 0 ||
@@ -194,10 +199,11 @@ export function registerDownloadIpc(): void {
                  result.status === 405 ||
                  (result.status >= 500 && result.status < 600) ||
                  !result.filename ||
-                 result.filename === 'download')
+                 result.filename === FALLBACK_FILENAME ||
+                 !result.filenameFromContentDisposition)
               ) {
                 res.resume()
-                doRequest('GET', currentUrl, redirectCount).then(resolve)
+                doRequest('GET', currentUrl, redirectCount, originalUrl).then(resolve)
                 return
               }
 
@@ -215,7 +221,7 @@ export function registerDownloadIpc(): void {
           req.on('error', () => {
             // If HEAD fails with a network error, try GET as fallback
             if (method === 'HEAD') {
-              doRequest('GET', currentUrl, redirectCount).then(resolve)
+              doRequest('GET', currentUrl, redirectCount, originalUrl).then(resolve)
               return
             }
             resolve(emptyFail)
@@ -224,7 +230,7 @@ export function registerDownloadIpc(): void {
             req.destroy()
             // If HEAD times out, try GET as fallback
             if (method === 'HEAD') {
-              doRequest('GET', currentUrl, redirectCount).then(resolve)
+              doRequest('GET', currentUrl, redirectCount, originalUrl).then(resolve)
               return
             }
             resolve(emptyFail)
@@ -235,7 +241,7 @@ export function registerDownloadIpc(): void {
         })
       } catch {
         if (method === 'HEAD') {
-          return doRequest('GET', currentUrl, redirectCount)
+          return doRequest('GET', currentUrl, redirectCount, originalUrl)
         }
         return emptyFail
       }

@@ -51,25 +51,6 @@ export function detectUrlType(url: string): UrlType {
 }
 
 /**
- * Derive a reasonable filename from a URL (last path segment or a fallback).
- */
-export function filenameFromUrl(url: string): string {
-  try {
-    const parsed = new URL(url)
-    const segments = parsed.pathname.split('/').filter(Boolean)
-    if (segments.length > 0) {
-      const last = decodeURIComponent(segments[segments.length - 1])
-      if (last.includes('.')) return last
-    }
-    // No extension found — return a placeholder; the caller should
-    // determine the real name from Content-Disposition or other sources
-    return 'download'
-  } catch {
-    return 'download'
-  }
-}
-
-/**
  * Follow HTTP redirects (HEAD) to resolve a download URL to its final
  * destination. This is useful for CDN-backed URLs (GitHub Releases,
  * opencode.ai, etc.) where the original URL redirects to a temporary

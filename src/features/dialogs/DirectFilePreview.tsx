@@ -70,6 +70,10 @@ export default function DirectFilePreview({
         id,
         url,
         outputPath: folder,
+        // Reuse the filename the Analyze flow already resolved so the queue,
+        // progress list, notifications, completed list and the saved file all
+        // show the exact same name (DIRECT_FILENAME_REPORT.md).
+        filename: info.filename,
       })
 
       onClose?.()

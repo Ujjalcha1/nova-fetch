@@ -6,7 +6,7 @@ import crypto from 'node:crypto'
 import { DownloadEngine } from './engine.types'
 import { DownloadOptions, DownloadProgress, ConnectionInfo, DownloadStatus } from './types'
 import { DownloadEventBus } from './eventBus'
-import { filenameFromUrl } from './urlType'
+import { parseContentDispositionFilename, resolveFilenamePriority } from './httpFilename'
 import { getTempArtifactRegexes } from './tempArtifacts'
 import { pipelineLog } from './pipelineLogger'
 
@@ -120,7 +120,20 @@ export class HttpEngine implements DownloadEngine {
     pipelineLog('START_DOWNLOAD', `${this.options.id} url=${this.options.url}`)
     this.state = EngineState.Starting
     this.abortController = new AbortController()
-    this.filename = filenameFromUrl(this.options.url)
+    // If the analyze flow already resolved a filename (DownloadOptions.filename)
+    // reuse it — the same name was shown in the Analyze dialog, queue, progress,
+    // notifications and completed list. Otherwise run the priority chain:
+    // Content-Disposition (from HEAD/GET below) → final URL pathname → original
+    // URL pathname → 'download.bin' (httpFilename.ts). `options.url` is the
+    // redirect-resolved URL; `originalUrl` is the URL the user originally
+    // pasted (set by DownloadTask).
+    this.filename =
+      this.options.filename ||
+      resolveFilenamePriority(
+        null,
+        this.options.url,
+        this.options.originalUrl ?? this.options.url
+      )
     this.outputPath = path.join(this.options.outputPath, this.filename)
     this.partInfoPath = this.outputPath + '.partinfo'
 
@@ -133,7 +146,7 @@ export class HttpEngine implements DownloadEngine {
       pipelineLog('HEAD_REQUEST', this.options.url)
       this.headResult = await this.headRequest(this.options.url)
 
-      // Derive filename from Content-Disposition first, then from the URL
+      // Content-Disposition (priority 1) wins over the URL-derived name.
       const cdFilename = this.headResult.contentDisposition
       if (cdFilename) {
         this.filename = cdFilename
@@ -316,11 +329,7 @@ export class HttpEngine implements DownloadEngine {
           let contentDisposition: string | null = null
           const cd = res.headers['content-disposition']
           if (cd) {
-            const cdStr = Array.isArray(cd) ? cd.join('') : cd
-            const fnMatch = cdStr.match(/filename\*?=(?:UTF-8'')?([^;\s"']+)/i)
-            if (fnMatch) {
-              contentDisposition = decodeURIComponent(fnMatch[1].trim())
-            }
+            contentDisposition = parseContentDispositionFilename(cd)
           }
           res.resume()
           resolve({ acceptRanges, contentLength, etag, lastModified, contentDisposition, contentMD5 })
@@ -527,11 +536,7 @@ export class HttpEngine implements DownloadEngine {
           if (!this.cdFromGetResponse) {
             const cd = response.headers['content-disposition']
             if (cd) {
-              const cdStr = Array.isArray(cd) ? cd.join('') : cd
-              const fnMatch = cdStr.match(/filename\*?=(?:UTF-8'')?([^;\s"']+)/i)
-              if (fnMatch) {
-                this.cdFromGetResponse = decodeURIComponent(fnMatch[1].trim())
-              }
+              this.cdFromGetResponse = parseContentDispositionFilename(cd)
             }
           }
 
@@ -650,11 +655,7 @@ export class HttpEngine implements DownloadEngine {
           if (!this.cdFromGetResponse) {
             const cd = response.headers['content-disposition']
             if (cd) {
-              const cdStr = Array.isArray(cd) ? cd.join('') : cd
-              const fnMatch = cdStr.match(/filename\*?=(?:UTF-8'')?([^;\s"']+)/i)
-              if (fnMatch) {
-                this.cdFromGetResponse = decodeURIComponent(fnMatch[1].trim())
-              }
+              this.cdFromGetResponse = parseContentDispositionFilename(cd)
             }
           }
           if (this.cdFromGetResponse && this.cdFromGetResponse !== this.filename) {

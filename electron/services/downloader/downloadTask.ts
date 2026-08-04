@@ -58,7 +58,13 @@ export class DownloadTask {
       }
     }
 
-    const engineOptions = { ...this.options, url: resolvedUrl }
+    // Keep the original URL alongside the resolved one so the engine's
+    // filename priority chain can fall back to the original pathname.
+    const engineOptions = {
+      ...this.options,
+      url: resolvedUrl,
+      originalUrl: this.options.url
+    }
 
     switch (urlType) {
       case 'http-file':

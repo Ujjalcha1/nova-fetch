@@ -6,6 +6,21 @@ export interface DownloadOptions {
 
   url: string
 
+  /**
+   * The URL the user originally provided, before redirect resolution.
+   * Used by the direct-HTTP engine's filename priority chain (fallback #3).
+   */
+  originalUrl?: string
+
+  /**
+   * Filename already resolved by the analyze flow. When present, the direct-
+   * HTTP engine starts from this name (so the Analyze dialog, queue, progress,
+   * notifications and completed list all show the same name) instead of
+   * re-deriving it from URLs. Content-Disposition from the actual download
+   * response still overrides it (priority 1).
+   */
+  filename?: string
+
   outputPath: string
 
   format?: string
