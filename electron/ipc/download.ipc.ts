@@ -25,6 +25,12 @@ import {
   FALLBACK_FILENAME,
   resolveHeaderFilename
 } from '../services/downloader/httpFilename'
+import { detectUrlType } from '../services/downloader/urlType'
+import {
+  trackDownloadStart,
+  trackDownloadCompleted,
+  trackDownloadFailed
+} from '../services/analytics/download'
 
 export function registerDownloadIpc(): void {
   const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
@@ -56,10 +62,18 @@ export function registerDownloadIpc(): void {
           taskbar.onCompleted(id)
           // Temp thumbnail no longer needed once the download finished.
           cleanupThumbnail(id)
+          // Analytics: best-effort, must never affect the download flow.
+          void trackDownloadCompleted(id).catch((err) => {
+            console.error('[Analytics] trackDownloadCompleted failed:', err)
+          })
         },
         (id) => {
           showNativeNotification(win, 'failed', id, 'Download Failed')
           taskbar.onFailed(id)
+          // Analytics: best-effort, must never affect the download flow.
+          void trackDownloadFailed(id).catch((err) => {
+            console.error('[Analytics] trackDownloadFailed failed:', err)
+          })
         }
       )
     : undefined
@@ -257,6 +271,18 @@ export function registerDownloadIpc(): void {
   safeHandle('download:start', async (_event, options: DownloadOptions) => {
     liveProbe?.markStart(options.id, options.url)
     await queue?.enqueue(options)
+
+    // Analytics: record the download start. Best-effort — a Firestore failure
+    // must never block or fail the actual download.
+    void trackDownloadStart({
+      downloadId: options.id,
+      url: options.url,
+      fileName: options.filename ?? '',
+      fileSize: 0,
+      downloadType: detectUrlType(options.url)
+    }).catch((err) => {
+      console.error('[Analytics] trackDownloadStart failed:', err)
+    })
 
     return true
   })
