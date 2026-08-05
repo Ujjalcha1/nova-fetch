@@ -1,7 +1,7 @@
 appId: com.novafetch.app
 
 productName: NovaFetch
-
+copyright: "Copyright © 2026 NovaFetch"
 directories:
   output: dist-installer
   buildResources: resources
@@ -20,7 +20,8 @@ win:
     - nsis
   icon: resources/icon.ico
   executableName: NovaFetch
-
+  publisherName:
+    - NovaFetch
 nsis:
   oneClick: false
   perMachine: false
