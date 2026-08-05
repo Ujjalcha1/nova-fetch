@@ -1,6 +1,6 @@
 {
   "latestVersion": "1.0.1",
-  "minimumSupportedVersion": "1.0.1",
+  "minimumSupportedVersion": "1.0.0",
   "forceUpdate": true,
   "downloadUrl": "https://github.com/Ujjalcha1/nova-fetch/releases/download/v1.0.1/NovaFetch-1.0.1-Setup.exe",
   "releaseNotes": ["Test"]

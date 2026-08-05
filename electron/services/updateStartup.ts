@@ -28,4 +28,6 @@ export async function runStartupUpdateCheck(): Promise<void> {
   } else {
     console.log(`[Update] Up to date (${result.currentVersion})`)
   }
+
+  console.log('[Update] Startup check complete')
 }

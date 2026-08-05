@@ -45,8 +45,10 @@ export interface UpdateServiceOptions {
 }
 
 // const DEFAULT_MANIFEST_URL = 'https://updates.novafetch.app/manifest.json'
+// Manifest is served from the project repo (verified reachable). Override at
+// runtime with the NOVAFETCH_UPDATE_URL environment variable.
 const DEFAULT_MANIFEST_URL =
-  "http://localhost:3000/update.json";
+  'https://raw.githubusercontent.com/Ujjalcha1/nova-fetch/main/update.json'
 
 function toMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
@@ -66,7 +68,7 @@ export class UpdateService {
 
   /** The version of the currently installed application, read from Electron. */
   getCurrentVersion(): string {
-    console.log("Current Version:", app.getVersion());
+    console.log('[Update] Current Version:', app.getVersion())
     return app.getVersion()
   }
 
@@ -90,6 +92,7 @@ export class UpdateService {
       error
     })
 
+    console.log(`[Update] Fetching manifest... ${this.manifestUrl}`)
     let response: Response
     try {
       response = await this.fetchImpl(this.manifestUrl, {
@@ -97,16 +100,20 @@ export class UpdateService {
         headers: { Accept: 'application/json' }
       })
     } catch (err) {
+      console.warn(`[Update] Fetch failed: ${toMessage(err)}`)
       return failed(`Update server unreachable: ${toMessage(err)}`)
     }
 
+    console.log(`[Update] HTTP ${response.status}`)
     if (!response.ok) {
       return failed(`Update server responded with HTTP ${response.status}`)
     }
 
     let parsed: UpdateManifestResult
     try {
-      parsed = parseUpdateManifest(await response.json())
+      const rawText = await response.text()
+      console.log('[Update] Raw response:', rawText)
+      parsed = parseUpdateManifest(JSON.parse(rawText))
     } catch (err) {
       return failed(`Invalid update manifest: ${toMessage(err)}`)
     }
@@ -115,14 +122,20 @@ export class UpdateService {
       return failed(`Invalid update manifest: ${parsed.errors.map((e) => e.message).join('; ')}`)
     }
 
+    console.log('[Update] Manifest loaded')
     const manifest = parsed.manifest
     const updateAvailable = compareVersions(manifest.latestVersion, currentVersion) > 0
+    const forceUpdate = updateAvailable && manifest.forceUpdate
+
+    console.log(`[Update] Latest Version: ${manifest.latestVersion}`)
+    console.log(`[Update] Needs Update: ${updateAvailable}`)
+    console.log(`[Update] Force Update: ${forceUpdate}`)
 
     return {
       currentVersion,
       latestVersion: manifest.latestVersion,
       updateAvailable,
-      forceUpdate: updateAvailable && manifest.forceUpdate,
+      forceUpdate,
       minimumSupportedVersion: manifest.minimumSupportedVersion ?? null,
       releaseNotes: manifest.releaseNotes.length > 0 ? manifest.releaseNotes.join('\n') : null,
       downloadUrl: manifest.downloadUrl,
