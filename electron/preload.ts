@@ -95,6 +95,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('clipboard:url-detected', handler)
       return () => ipcRenderer.removeListener('clipboard:url-detected', handler)
     }
+  },
+
+  rating: {
+    showRatingDialog: () => ipcRenderer.invoke('rating:should-show'),
+
+    submitRating: (payload: { downloadId: string; rating: number; comment?: string }) =>
+      ipcRenderer.invoke('rating:submit', payload)
   }
 })
 
