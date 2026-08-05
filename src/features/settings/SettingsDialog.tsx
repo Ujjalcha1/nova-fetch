@@ -28,7 +28,7 @@ export default function SettingsDialog({ onClose }: Props): React.JSX.Element {
     try {
       await updateSettings({ cookiesMode: value })
       addToast({
-        message: 'YouTube cookies updated',
+        message: 'Browser cookies updated',
         subtitle: value === 'disabled' ? 'Cookie support disabled' : `Cookie source: ${value}`,
         type: 'success'
       })
@@ -53,10 +53,10 @@ export default function SettingsDialog({ onClose }: Props): React.JSX.Element {
       <div className="space-y-6 px-6 py-5">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-200">
-            YouTube cookies (yt-dlp)
+            Browser cookies
           </label>
           <p className="mb-3 text-xs leading-relaxed text-gray-500">
-            Lets yt-dlp sign in to YouTube automatically using cookies from an installed
+            Lets the download engine sign in to sites automatically using cookies from an installed
             browser. No manual cookie export needed. In <span className="text-gray-400">Auto</span>{' '}
             mode it tries Chrome, then Edge, Brave, and Firefox, and keeps working even when a
             browser is unavailable. Does not affect direct HTTP downloads.

@@ -92,7 +92,7 @@ const ERROR_PATTERNS: [RegExp, string][] = [
   [/econnreset/i, 'Network error — connection reset'],
   [/enetunreach/i, 'Network error — network unreachable'],
   [/econnaborted/i, 'Network error — connection aborted'],
-  [/sign in|login required|confirm your age/i, 'YouTube authentication required'],
+  [/sign in|login required|confirm your age/i, 'Authentication required'],
   [/private video|age.restrict|age verification/i, 'Age-restricted content'],
   [/removed by uploader|removed for violating/i, 'Content removed'],
   [/copyright|takedown/i, 'Content removed (copyright claim)'],

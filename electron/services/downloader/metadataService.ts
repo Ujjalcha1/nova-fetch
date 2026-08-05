@@ -76,7 +76,7 @@ function handleExecError(result: YtDlpRunResult, url: string): never {
   }
   if (e.code === 'ECONNREFUSED') {
     console.error(`[MetadataService] Connection refused for URL: ${url}`)
-    throw new Error('Connection refused. YouTube may be blocked.')
+    throw new Error('Connection refused. The site may be blocking access.')
   }
   if (e.code === 'ETIMEDOUT' || e.code === 'ECONNABORTED') {
     console.error(`[MetadataService] Connection timed out for URL: ${url}`)
@@ -126,7 +126,7 @@ export class MetadataService {
       json = JSON.parse(result.stdout)
     } catch {
       console.error('[MetadataService] Failed to parse yt-dlp output as JSON:', result.stdout.slice(0, 500))
-      throw new Error('Received unexpected response from YouTube')
+      throw new Error('Received an unexpected response from the server')
     }
 
     const formats: DownloadFormat[] = (json.formats as any[] ?? []).map((f: any) => ({
@@ -198,7 +198,7 @@ export class MetadataService {
       json = JSON.parse(result.stdout)
     } catch {
       console.error('[MetadataService] Failed to parse yt-dlp playlist output as JSON:', result.stdout.slice(0, 500))
-      throw new Error('Received unexpected response from YouTube')
+      throw new Error('Received an unexpected response from the server')
     }
 
     const rawEntries = (json.entries as any[]) ?? []

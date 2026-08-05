@@ -25,7 +25,7 @@ function AboutPage(): React.JSX.Element {
     <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
       <h2 className="text-xl font-bold text-violet-500">NovaFetch</h2>
       <p className="text-sm">Version 1.0.0</p>
-      <p className="text-sm">YouTube Downloader built with Electron & React</p>
+      <p className="text-sm">Download Manager built with Electron & React</p>
     </div>
   )
 }

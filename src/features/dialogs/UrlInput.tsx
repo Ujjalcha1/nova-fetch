@@ -19,7 +19,7 @@ export default function UrlInput({ url, setUrl, onFetch, loading }: Props) {
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://youtube.com/watch?v=..."
+          placeholder="https://example.com/..."
           className="flex-1 rounded-xl border border-white/10 bg-[#1A2232] px-4 py-3 outline-none focus:border-violet-500"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {

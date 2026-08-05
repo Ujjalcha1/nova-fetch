@@ -91,7 +91,7 @@ export class PlaylistMetadataService {
       json = JSON.parse(result.stdout)
     } catch {
       console.error('[PlaylistMetadataService] Failed to parse yt-dlp output as JSON:', result.stdout.slice(0, 500))
-      throw new Error('Received unexpected response from YouTube')
+      throw new Error('Received an unexpected response from the server')
     }
 
     const rawEntries = (json.entries as any[]) ?? []

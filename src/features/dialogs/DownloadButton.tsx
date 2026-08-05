@@ -41,7 +41,7 @@ export default function DownloadButton({ metadata, folder, selectedFormatId, onD
       const parsed = parseYoutubeUrl(metadata.webpageUrl)
 
       if (!parsed.supported) {
-        onError?.('Unsupported YouTube URL')
+        onError?.('Unsupported URL')
         return
       }
 

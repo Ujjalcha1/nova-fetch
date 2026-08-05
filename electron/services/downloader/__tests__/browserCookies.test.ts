@@ -109,7 +109,7 @@ describe('cookieArgs', () => {
 
 describe('AUTH_REQUIRED_MESSAGE', () => {
   it('explains that YouTube is requesting authentication', () => {
-    expect(AUTH_REQUIRED_MESSAGE).toContain('YouTube is requesting authentication')
+    expect(AUTH_REQUIRED_MESSAGE).toContain('Sign-in required to download this content')
   })
 })
 

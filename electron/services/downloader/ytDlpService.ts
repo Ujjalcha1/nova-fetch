@@ -100,7 +100,7 @@ function mapYtDlpError(errorText: string, exitCode?: number): string {
     return 'File not found'
   }
 
-  return `Unknown yt-dlp error (exit code ${exitCode ?? 'N/A'})`
+  return `Unknown download engine error (exit code ${exitCode ?? 'N/A'})`
 }
 
 export class YtDlpService {
@@ -349,7 +349,7 @@ export class YtDlpService {
       failedEmitted = true
 
       const raw =
-        errorFromStderr || stderrAcc.trim() || `yt-dlp exited with code ${code}`
+        errorFromStderr || stderrAcc.trim() || `Download engine exited with code ${code}`
       const friendly = mapYtDlpError(raw, code ?? undefined)
       eventBus.failed(options.id, friendly, buildFailure())
     })

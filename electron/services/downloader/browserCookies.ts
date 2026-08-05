@@ -182,8 +182,8 @@ export function isAuthRequiredError(stderr: string): boolean {
 }
 
 export const AUTH_REQUIRED_MESSAGE =
-  'YouTube is requesting authentication (sign-in required). ' +
-  'Sign in to YouTube in your browser and try again, or change the browser ' +
+  'Sign-in required to download this content. ' +
+  'Sign in to the site in your browser and try again, or change the browser ' +
   'cookie source in Settings.'
 
 /** yt-dlp argument fragment for a resolved cookie source (or none). */
