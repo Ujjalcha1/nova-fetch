@@ -46,7 +46,7 @@ export interface UpdateServiceOptions {
 
 // const DEFAULT_MANIFEST_URL = 'https://updates.novafetch.app/manifest.json'
 const DEFAULT_MANIFEST_URL =
-  "http://localhost:3000/update.json";
+  'https://raw.githubusercontent.com/Ujjalcha1/nova-fetch/main/update.json'
 
 function toMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
@@ -66,7 +66,7 @@ export class UpdateService {
 
   /** The version of the currently installed application, read from Electron. */
   getCurrentVersion(): string {
-    console.log("Current Version:", app.getVersion());
+    console.log('Current Version:', app.getVersion())
     return app.getVersion()
   }
 
