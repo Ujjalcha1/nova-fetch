@@ -3,6 +3,7 @@ import path from 'node:path'
 import { registerIpc } from './ipc'
 import { runStartupUpdateCheck } from './services/updateStartup'
 import { installThumbnailFsTrace } from './services/downloader/thumbnailTracer'
+import { registerDevice } from './services/analytics/device'
 
 // Last-resort safety nets. Every ipcMain.handle is already routed through
 // safeHandle() (see electron/ipc/safeHandle.ts), so these should never fire —
@@ -35,23 +36,30 @@ if (!gotLock) {
     }
   })
 
-  app.whenReady().then(async () => {
-    // Set the Windows App User Model ID so notifications, taskbar,
-    // and Action Center use "NovaFetch" instead of "electron.app.Electron"
-    app.setAppUserModelId('NovaFetch')
+  app
+    .whenReady()
+    .then(async () => {
+      // Set the Windows App User Model ID so notifications, taskbar,
+      // and Action Center use "NovaFetch" instead of "electron.app.Electron"
+      app.setAppUserModelId('NovaFetch')
 
-    Menu.setApplicationMenu(null)
-    createWindow()
+      Menu.setApplicationMenu(null)
 
-    registerIpc()
+      createWindow()
 
-    // One-time update check after startup, gated on the persisted Auto Update
-    // setting (see electron/services/updateStartup.ts). Check-only: no dialogs,
-    // no downloads, no installs. Fire-and-forget so it never blocks the window.
-    void runStartupUpdateCheck()
-  }).catch((err) => {
-    console.error('[Main] Failed during app startup:', err)
-  })
+      registerIpc()
+      console.log('BEFORE REGISTER')
+      // Register this device with the analytics backend once the app is ready.
+      await registerDevice()
+      console.log('AFTER REGISTER')
+      // One-time update check after startup, gated on the persisted Auto Update
+      // setting (see electron/services/updateStartup.ts). Check-only: no dialogs,
+      // no downloads, no installs. Fire-and-forget so it never blocks the window.
+      void runStartupUpdateCheck()
+    })
+    .catch((err) => {
+      console.error('[Main] Failed during app startup:', err)
+    })
 }
 
 function createWindow(): void {

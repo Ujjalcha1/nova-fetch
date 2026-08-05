@@ -25,6 +25,7 @@
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.8",
     "electron-updater": "^6.3.9",
+    "firebase": "^12.17.1",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.25.0",
     "zustand": "^5.0.14"
