@@ -1,6 +1,6 @@
 {
   "name": "novafetch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NovaFetch - Fast and modern download manager",
   "main": "./out/main/index.js",
   "author": "Ujjal Chatterjee",
