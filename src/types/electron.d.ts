@@ -154,9 +154,9 @@ declare global {
 
         setSettings(settings: Partial<UpdateConfig>): Promise<UpdateConfig>
 
-        download(url: string): Promise<{ ok: boolean; path?: string; error?: string }>
+        download(): Promise<{ ok: boolean; error?: string }>
 
-        launch(installerPath: string): Promise<{ ok: boolean; error?: string }>
+        install(): Promise<{ ok: boolean }>
 
         onDownloadProgress(callback: (data: { received: number; total: number; percent: number | null }) => void): () => void
       }

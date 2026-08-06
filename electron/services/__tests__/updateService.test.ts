@@ -1,24 +1,51 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('electron', () => ({
-  app: { getVersion: () => '1.0.0' }
+  app: { getVersion: () => '1.0.0', isPackaged: false }
 }))
 
-import { UpdateService, compareVersions } from '../updateService'
+vi.mock('electron-updater', () => {
+  const autoUpdater = {
+    autoDownload: true,
+    autoInstallOnAppQuit: true,
+    forceDevUpdateConfig: false,
+    logger: undefined,
+    setFeedURL: vi.fn(),
+    checkForUpdates: vi.fn(),
+    downloadUpdate: vi.fn(),
+    quitAndInstall: vi.fn(),
+    on: vi.fn(() => autoUpdater),
+    removeListener: vi.fn()
+  }
+  return { autoUpdater }
+})
 
-function jsonResponse(json: unknown, ok = true, status = 200): Response {
-  return {
-    ok,
-    status,
-    json: async () => json
-  } as unknown as Response
+import { UpdateService, compareVersions } from '../updateService'
+import { autoUpdater } from 'electron-updater'
+
+function makeService(): UpdateService {
+  return new UpdateService()
 }
 
-function makeService(
-  fetchImpl: typeof fetch,
-  manifestUrl = 'https://example.test/manifest.json'
-): UpdateService {
-  return new UpdateService({ manifestUrl, fetchImpl })
+function checkResult(
+  version: string,
+  releaseNotes?: string
+): {
+  isUpdateAvailable: boolean
+  updateInfo: { version: string; releaseNotes?: string }
+  versionInfo: { version: string; releaseNotes?: string }
+} {
+  return {
+    isUpdateAvailable: true,
+    updateInfo: {
+      version,
+      ...(releaseNotes !== undefined ? { releaseNotes } : {})
+    },
+    versionInfo: {
+      version,
+      ...(releaseNotes !== undefined ? { releaseNotes } : {})
+    }
+  }
 }
 
 describe('compareVersions', () => {
@@ -34,51 +61,51 @@ describe('compareVersions', () => {
 
 describe('UpdateService', () => {
   beforeEach(() => {
-    vi.restoreAllMocks()
+    vi.clearAllMocks()
   })
 
   it('reports the installed version from Electron', () => {
-    const service = makeService(vi.fn() as unknown as typeof fetch)
+    const service = makeService()
     expect(service.getCurrentVersion()).toBe('1.0.0')
   })
 
   it('returns a structured result when a newer version exists', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(
-      jsonResponse({
-        latestVersion: '1.2.0',
-        minimumSupportedVersion: '1.0.0',
-        forceUpdate: false,
-        releaseNotes: ['Bug fixes']
-      })
+    vi.mocked(autoUpdater.checkForUpdates).mockResolvedValue(
+      checkResult('1.2.0', 'Bug fixes') as never
     )
-    const result = await makeService(fetchImpl).checkForUpdates()
+    const result = await makeService().checkForUpdates()
 
     expect(result).toEqual({
       currentVersion: '1.0.0',
       latestVersion: '1.2.0',
       updateAvailable: true,
       forceUpdate: false,
-      minimumSupportedVersion: '1.0.0',
+      minimumSupportedVersion: null,
       releaseNotes: ['Bug fixes'],
       downloadUrl: '',
       error: null
     })
-    expect(fetchImpl).toHaveBeenCalledWith('https://example.test/manifest.json', expect.any(Object))
   })
 
-  it('preserves every release note from the manifest', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(
-      jsonResponse({
-        latestVersion: '1.2.0',
-        forceUpdate: false,
-        releaseNotes: [
-          'Added in-app rating system',
-          'Firebase analytics integration',
-          'Website visitor analytics'
-        ]
-      })
+  it('does not flag an update when none is available', async () => {
+    vi.mocked(autoUpdater.checkForUpdates).mockResolvedValue(
+      { isUpdateAvailable: false, updateInfo: { version: '1.0.0' } } as never
     )
-    const result = await makeService(fetchImpl).checkForUpdates()
+    const result = await makeService().checkForUpdates()
+
+    expect(result.updateAvailable).toBe(false)
+    expect(result.forceUpdate).toBe(false)
+    expect(result.error).toBeNull()
+  })
+
+  it('splits release notes into one bullet per line', async () => {
+    vi.mocked(autoUpdater.checkForUpdates).mockResolvedValue(
+      checkResult(
+        '1.2.0',
+        'Added in-app rating system\nFirebase analytics integration\nWebsite visitor analytics'
+      ) as never
+    )
+    const result = await makeService().checkForUpdates()
 
     expect(result.releaseNotes).toEqual([
       'Added in-app rating system',
@@ -87,38 +114,9 @@ describe('UpdateService', () => {
     ])
   })
 
-  it('does not flag an update when versions are equal', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ latestVersion: '1.0.0' }))
-    const result = await makeService(fetchImpl).checkForUpdates()
-
-    expect(result.updateAvailable).toBe(false)
-    expect(result.forceUpdate).toBe(false)
-    expect(result.error).toBeNull()
-  })
-
-  it('only forces an update when an update is actually available', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(jsonResponse({ latestVersion: '1.0.0', forceUpdate: true }))
-    const result = await makeService(fetchImpl).checkForUpdates()
-
-    expect(result.updateAvailable).toBe(false)
-    expect(result.forceUpdate).toBe(false)
-  })
-
-  it('propagates forceUpdate when a newer version is available', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(jsonResponse({ latestVersion: '2.0.0', forceUpdate: true }))
-    const result = await makeService(fetchImpl).checkForUpdates()
-
-    expect(result.updateAvailable).toBe(true)
-    expect(result.forceUpdate).toBe(true)
-  })
-
-  it('returns a structured failure when the server cannot be reached', async () => {
-    const fetchImpl = vi.fn().mockRejectedValue(new Error('ENOTFOUND example.test'))
-    const result = await makeService(fetchImpl).checkForUpdates()
+  it('returns a structured failure when the update server cannot be reached', async () => {
+    vi.mocked(autoUpdater.checkForUpdates).mockRejectedValue(new Error('ENOTFOUND api.github.com'))
+    const result = await makeService().checkForUpdates()
 
     expect(result).toMatchObject({
       currentVersion: '1.0.0',
@@ -129,26 +127,31 @@ describe('UpdateService', () => {
     })
   })
 
-  it('returns a structured failure on non-2xx responses', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({}, false, 404))
-    const result = await makeService(fetchImpl).checkForUpdates()
-
-    expect(result.error).toContain('HTTP 404')
-    expect(result.updateAvailable).toBe(false)
+  it('delegates downloadUpdate to electron-updater', async () => {
+    vi.mocked(autoUpdater.downloadUpdate).mockResolvedValue(['C:\\temp\\update.exe'])
+    await expect(makeService().downloadUpdate()).resolves.toBeUndefined()
+    expect(autoUpdater.downloadUpdate).toHaveBeenCalledTimes(1)
   })
 
-  it('returns a structured failure on a malformed manifest', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ nope: true }))
-    const result = await makeService(fetchImpl).checkForUpdates()
-
-    expect(result.error).toContain('Invalid update manifest')
-    expect(result.updateAvailable).toBe(false)
+  it('installs silently and restarts through quitAndInstall', () => {
+    makeService().quitAndInstall()
+    expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(true, true)
   })
 
-  it('returns a structured failure on invalid JSON', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse('not json'))
-    const result = await makeService(fetchImpl).checkForUpdates()
+  it('subscribes to and unsubscribes from download progress', () => {
+    const service = makeService()
+    const callback = vi.fn()
+    const unsub = service.onDownloadProgress(callback)
 
-    expect(result.error).toContain('Invalid update manifest')
+    expect(autoUpdater.on).toHaveBeenCalledWith('download-progress', callback)
+
+    const calls = vi.mocked(autoUpdater.on).mock.calls
+    const handler = calls[calls.length - 1][1] as (p: { percent: number }) => void
+    handler({ percent: 42 })
+
+    expect(callback).toHaveBeenCalledWith(expect.objectContaining({ percent: 42 }))
+
+    unsub()
+    expect(autoUpdater.removeListener).toHaveBeenCalledWith('download-progress', callback)
   })
 })

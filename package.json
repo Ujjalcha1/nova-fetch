@@ -57,6 +57,11 @@
   "build": {
     "appId": "com.novafetch.app",
     "productName": "NovaFetch",
+    "publish": {
+      "provider": "github",
+      "owner": "Ujjalcha1",
+      "repo": "nova-fetch"
+    },
     "directories": {
       "output": "release",
       "buildResources": "resources"
@@ -87,13 +92,13 @@
       "executableName": "NovaFetch"
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "NovaFetch",
-      "uninstallDisplayName": "NovaFetch"
+      "uninstallDisplayName": "NovaFetch",
+      "runAfterFinish": true
     },
     "artifactName": "NovaFetch-${version}-Setup.${ext}",
     "asar": true,

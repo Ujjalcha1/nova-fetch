@@ -115,9 +115,9 @@ contextBridge.exposeInMainWorld('electron', {
 
     setSettings: (settings: Record<string, unknown>) => ipcRenderer.invoke('update:set-settings', settings),
 
-    download: (url: string) => ipcRenderer.invoke('update:download', url),
+    download: () => ipcRenderer.invoke('update:download'),
 
-    launch: (installerPath: string) => ipcRenderer.invoke('update:launch', installerPath),
+    install: () => ipcRenderer.invoke('update:install'),
 
     onDownloadProgress: (callback: (data: { received: number; total: number; percent: number | null }) => void) => {
       const handler = (_event: unknown, data: { received: number; total: number; percent: number | null }) => callback(data)

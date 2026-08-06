@@ -430,23 +430,10 @@ export default function App(): React.JSX.Element {
     }
   }, [updateDownload])
 
-  async function handleUpdate() {
+  async function handleUpdate(): Promise<void> {
     // Prevent multiple clicks / concurrent update runs.
     if (updateInFlightRef.current || !updateResult) return
     updateInFlightRef.current = true
-
-    const { downloadUrl } = updateResult
-
-    // 1. Validate that the manifest provided an installer URL.
-    if (!downloadUrl || downloadUrl.trim() === '') {
-      updateInFlightRef.current = false
-      useToastStore.getState().addToast({
-        message: 'Update failed',
-        subtitle: 'No download URL was provided by the update manifest.',
-        type: 'error'
-      })
-      return
-    }
 
     setUpdateDownloading(true)
     setUpdateProgress(0)
@@ -456,18 +443,17 @@ export default function App(): React.JSX.Element {
     })
 
     try {
-      // 2. Download the installer to the OS temp dir (main process, not the
-      //    download manager — never appears in the Downloads list).
-      const download = await window.electron.update.download(downloadUrl)
-      if (!download.ok || !download.path) {
-        throw new Error(download.error || 'Failed to download the installer')
+      // 1. Download the update with electron-updater (main process, GitHub
+      //    release). Never appears in the Downloads list.
+      const download = await window.electron.update.download()
+      if (!download.ok) {
+        throw new Error(download.error || 'Failed to download the update')
       }
 
-      // 3. Verify + launch. On success the main process quits NovaFetch.
-      const launch = await window.electron.update.launch(download.path)
-      if (!launch.ok) {
-        throw new Error(launch.error || 'Failed to launch the installer')
-      }
+      // 2. Download complete — install silently and restart. electron-updater
+      //    quits NovaFetch and runs the installer with /S, so no installer
+      //    wizard appears. Fire-and-forget: the app quits right after.
+      window.electron.update.install()
     } catch (err) {
       // Keep the app open and surface the failure.
       useToastStore.getState().addToast({
