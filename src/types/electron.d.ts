@@ -33,6 +33,19 @@ export interface UpdateCheckResult {
   error: string | null
 }
 
+export interface RatingPayload {
+  downloadId: string
+  /** Star rating from 1 to 5. */
+  rating: 1 | 2 | 3 | 4 | 5
+  comment?: string
+}
+
+export interface RatingResult {
+  success: boolean
+  ratingId: string | null
+  error: string | null
+}
+
 export {}
 
 declare global {
@@ -123,6 +136,11 @@ declare global {
         startMonitoring(): Promise<void>
         stopMonitoring(): Promise<void>
         onUrlDetected(callback: (url: string) => void): () => void
+      }
+
+      rating: {
+        showRatingDialog(): Promise<boolean>
+        submitRating(payload: RatingPayload): Promise<RatingResult>
       }
     }
 

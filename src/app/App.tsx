@@ -18,6 +18,7 @@ import { useClipboardMonitor } from '../lib/useClipboardMonitor'
 import ClipboardNotification from '../components/common/ClipboardNotification'
 import { useUpdate } from '../hooks/useUpdate'
 import UpdateAvailableDialog from '../features/dialogs/UpdateAvailableDialog'
+import RatingDialog from '../features/dialogs/RatingDialog'
 import type { UpdateCheckResult } from '../types/electron'
 
 function AboutPage(): React.JSX.Element {
@@ -49,6 +50,10 @@ export default function App(): React.JSX.Element {
   const [updateDownloading, setUpdateDownloading] = useState(false)
   const [updateProgress, setUpdateProgress] = useState<number | null>(null)
   const updateInFlightRef = useRef(false)
+  const ratingSubmitInFlightRef = useRef(false)
+  const [ratingDownloadId, setRatingDownloadId] = useState<string | null>(null)
+  const [ratingError, setRatingError] = useState<string | null>(null)
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
 
   useKeyboardShortcuts()
   const { detectedUrl, dismiss: dismissClipboard } = useClipboardMonitor()
@@ -290,6 +295,36 @@ export default function App(): React.JSX.Element {
         type: 'success',
       })
 
+      // Rating prompt: after a successful download, ask the main process
+      // whether the dialog should be shown (a completed download exists and
+      // this device has never rated). This handler only fires for real
+      // completion events — never during startup, when saved downloads are
+      // restored without emitting 'completed', and never for failures (those
+      // go through onFailed).
+      //
+      // The normal persistence path is debounced by 500ms, so save immediately
+      // first — otherwise main's shouldShowRating() would read a downloads.json
+      // that still shows the download's previous status and the prompt would
+      // never appear after the first completed download.
+      const { downloads } = useDownloadStore.getState()
+      const clean = downloads.map(({ connections, ...rest }) => {
+        void connections
+        return rest
+      })
+      electron
+        .saveDownloads(clean)
+        .then(() => window.electronAPI.rating.showRatingDialog())
+        .then((show) => {
+          if (show) {
+            setRatingDownloadId(id)
+            setRatingError(null)
+          }
+        })
+        .catch(() => {
+          // Best-effort: a persistence or IPC failure must never break the
+          // completion flow.
+        })
+
       const filenames = current.files.map((f) => f.name)
       if (filenames.length > 0) {
         electron.verifyFiles(current.savePath, filenames).then((results) => {
@@ -478,6 +513,45 @@ export default function App(): React.JSX.Element {
             />
           </div>
         </div>
+      )}
+      {ratingDownloadId && (
+        <RatingDialog
+          onClose={() => {
+            ratingSubmitInFlightRef.current = false
+            setRatingDownloadId(null)
+            setRatingError(null)
+            setRatingSubmitting(false)
+          }}
+          error={ratingError}
+          submitting={ratingSubmitting}
+          onSubmit={(rating, comment) => {
+            const downloadId = ratingDownloadId
+            if (!downloadId || ratingSubmitInFlightRef.current) return
+
+            // saveRating() uploads to Firestore in main; on success the device
+            // is marked as rated there and the dialog closes. On failure the
+            // dialog stays open with the error shown inline so the user can
+            // retry — the dialog only closes on a successful save.
+            ratingSubmitInFlightRef.current = true
+            setRatingSubmitting(true)
+            void window.electronAPI.rating
+              .submitRating({ downloadId, rating: rating as 1 | 2 | 3 | 4 | 5, comment })
+              .then((result) => {
+                ratingSubmitInFlightRef.current = false
+                setRatingSubmitting(false)
+                if (result.success) {
+                  setRatingDownloadId(null)
+                  setRatingError(null)
+                  useToastStore.getState().addToast({
+                    message: 'Thanks for your feedback!',
+                    type: 'success'
+                  })
+                } else {
+                  setRatingError(result.error ?? 'Could not submit rating. Please try again.')
+                }
+              })
+          }}
+        />
       )}
     </AppLayout>
   )
