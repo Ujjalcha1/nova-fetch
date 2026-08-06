@@ -28,7 +28,7 @@ export interface UpdateCheckResult {
   updateAvailable: boolean
   forceUpdate: boolean
   minimumSupportedVersion: string | null
-  releaseNotes: string | null
+  releaseNotes: string[] | null
   downloadUrl: string
   error: string | null
 }

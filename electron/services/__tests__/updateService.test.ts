@@ -59,11 +59,32 @@ describe('UpdateService', () => {
       updateAvailable: true,
       forceUpdate: false,
       minimumSupportedVersion: '1.0.0',
-      releaseNotes: 'Bug fixes',
+      releaseNotes: ['Bug fixes'],
       downloadUrl: '',
       error: null
     })
     expect(fetchImpl).toHaveBeenCalledWith('https://example.test/manifest.json', expect.any(Object))
+  })
+
+  it('preserves every release note from the manifest', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        latestVersion: '1.2.0',
+        forceUpdate: false,
+        releaseNotes: [
+          'Added in-app rating system',
+          'Firebase analytics integration',
+          'Website visitor analytics'
+        ]
+      })
+    )
+    const result = await makeService(fetchImpl).checkForUpdates()
+
+    expect(result.releaseNotes).toEqual([
+      'Added in-app rating system',
+      'Firebase analytics integration',
+      'Website visitor analytics'
+    ])
   })
 
   it('does not flag an update when versions are equal', async () => {

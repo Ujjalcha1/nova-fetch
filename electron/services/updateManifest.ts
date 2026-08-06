@@ -16,6 +16,9 @@
  *     "downloadUrl": "",
  *     "releaseNotes": []
  *   }
+ *
+ *   releaseNotes may be a single string or an array of strings; both are
+ *   normalized to an array of strings.
  */
 
 /** The validated update manifest. */
@@ -28,7 +31,11 @@ export interface UpdateManifest {
   forceUpdate: boolean
   /** Optional, defaults to ''. Direct download URL, or '' when not published yet. */
   downloadUrl: string
-  /** Optional, defaults to []. Human-readable release notes. */
+  /**
+   * Optional, defaults to []. Human-readable release notes. The manifest may
+   * provide a single string or an array of strings; both are normalized to an
+   * array of strings.
+   */
   releaseNotes: string[]
 }
 
@@ -124,10 +131,15 @@ export function parseUpdateManifest(json: unknown): UpdateManifestResult {
 
   let releaseNotes: string[] = []
   if (raw.releaseNotes !== undefined) {
-    if (!Array.isArray(raw.releaseNotes) || raw.releaseNotes.some((n) => typeof n !== 'string')) {
-      errors.push({ field: 'releaseNotes', message: 'must be an array of strings' })
-    } else {
+    if (typeof raw.releaseNotes === 'string') {
+      releaseNotes = [raw.releaseNotes]
+    } else if (
+      Array.isArray(raw.releaseNotes) &&
+      raw.releaseNotes.every((n) => typeof n === 'string')
+    ) {
       releaseNotes = raw.releaseNotes
+    } else {
+      errors.push({ field: 'releaseNotes', message: 'must be a string or an array of strings' })
     }
   }
 

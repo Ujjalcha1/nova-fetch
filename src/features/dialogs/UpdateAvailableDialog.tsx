@@ -79,8 +79,16 @@ export default function UpdateAvailableDialog({
 
         <div>
           <p className="text-sm text-gray-400">Release Notes</p>
-          <div className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-[#1A2232] p-3 text-sm leading-relaxed text-gray-300">
-            {result.releaseNotes || 'No release notes provided.'}
+          <div className="mt-1 max-h-40 overflow-y-auto rounded-lg bg-[#1A2232] p-3 text-sm leading-relaxed text-gray-300">
+            {result.releaseNotes && result.releaseNotes.length > 0 ? (
+              <ul className="list-disc space-y-1 pl-5">
+                {result.releaseNotes.map((note, i) => (
+                  <li key={i}>{note}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No release notes available.</p>
+            )}
           </div>
         </div>
       </div>

@@ -28,7 +28,8 @@ export interface UpdateCheckResult {
   updateAvailable: boolean
   forceUpdate: boolean
   minimumSupportedVersion: string | null
-  releaseNotes: string | null
+  /** Release notes for the update, one item per line, or null when none. */
+  releaseNotes: string[] | null
   /** Direct installer URL from the manifest, or '' when not published yet. */
   downloadUrl: string
   /** Non-null when the check failed (server unreachable, bad response, bad manifest). */
@@ -124,7 +125,7 @@ export class UpdateService {
       updateAvailable,
       forceUpdate: updateAvailable && manifest.forceUpdate,
       minimumSupportedVersion: manifest.minimumSupportedVersion ?? null,
-      releaseNotes: manifest.releaseNotes.length > 0 ? manifest.releaseNotes.join('\n') : null,
+      releaseNotes: manifest.releaseNotes.length > 0 ? manifest.releaseNotes : null,
       downloadUrl: manifest.downloadUrl,
       error: null
     }

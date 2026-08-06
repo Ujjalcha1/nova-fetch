@@ -145,7 +145,16 @@ describe('parseUpdateManifest', () => {
     }
   })
 
-  it('rejects releaseNotes that is not an array of strings', () => {
+  it('accepts releaseNotes as a string and normalizes it to an array', () => {
+    const result = parseUpdateManifest({ latestVersion: '1.1.0', releaseNotes: 'Bug fixes' })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.manifest.releaseNotes).toEqual(['Bug fixes'])
+    }
+  })
+
+  it('rejects releaseNotes that is neither a string nor an array of strings', () => {
     const result = parseUpdateManifest({ latestVersion: '1.1.0', releaseNotes: ['ok', 42] })
 
     expect(result.ok).toBe(false)
