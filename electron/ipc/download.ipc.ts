@@ -495,13 +495,64 @@ export function registerDownloadIpc(): void {
     }
   })
 
+  /**
+   * Resolve the real, existing path for a downloaded file.
+   *
+   * The renderer builds the path from the filename reported by the download
+   * engine (e.g. yt-dlp's `[download] Destination:` line). That reported name
+   * can differ from the name actually written to disk — yt-dlp strips `|` in
+   * its stdout output but writes the fullwidth `｜` (U+FF5C), so the path the
+   * renderer sends may not exist. When the exact path is missing we scan the
+   * parent folder and fall back to the closest match so Open / Open Folder
+   * always act on the file that really exists on disk.
+   */
+  function resolveDownloadFilePath(filePath: string): string {
+    if (fs.existsSync(filePath)) return filePath
+
+    const dir = path.dirname(filePath)
+    const base = path.basename(filePath)
+
+    let entries: string[] = []
+    try {
+      entries = fs.readdirSync(dir)
+    } catch {
+      return filePath
+    }
+
+    // Normalize for comparison: fold fullwidth chars back to ASCII and strip
+    // punctuation so `Admission  Nitin` matches `Admission ｜ Nitin`.
+    const normalize = (s: string): string =>
+      s
+        .toLowerCase()
+        .replace(/[\uFF01-\uFF5E]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+        .replace(/[^a-z0-9.\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+
+    const target = normalize(base)
+
+    const exact = entries.find((e) => e.toLowerCase() === base.toLowerCase())
+    if (exact) return path.join(dir, exact)
+
+    const fuzzy = entries.find((e) => normalize(e) === target)
+    if (fuzzy) return path.join(dir, fuzzy)
+
+    return filePath
+  }
+
   safeHandle('download:open-file', async (_event, filePath: string) => {
-    pipelineLog('OPEN_FILE', filePath)
-    await shell.openPath(filePath)
+    const resolved = resolveDownloadFilePath(filePath)
+    pipelineLog('OPEN_FILE', `${filePath} -> ${resolved}`)
+    const error = await shell.openPath(resolved)
+    if (error) {
+      console.error(`[IPC] download:open-file failed: ${error}`)
+    }
   })
 
   safeHandle('download:open-folder', async (_event, filePath: string) => {
-    shell.showItemInFolder(filePath)
+    const resolved = resolveDownloadFilePath(filePath)
+    pipelineLog('OPEN_FOLDER', `${filePath} -> ${resolved}`)
+    shell.showItemInFolder(resolved)
   })
 
   safeHandle('download:delete-files', async (_event, filePaths: string[]): Promise<{
