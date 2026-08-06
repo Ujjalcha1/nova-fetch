@@ -69,7 +69,20 @@ export default function App(): React.JSX.Element {
     let cancelled = false
     checkForUpdates().then((result) => {
       if (cancelled) return
-      if (result.updateAvailable) setUpdateResult(result)
+      console.log(
+        `[Renderer] Update check completed: updateAvailable=${result.updateAvailable}, ` +
+          `current=${result.currentVersion}, latest=${result.latestVersion}, ` +
+          `forced=${result.forceUpdate}, error=${result.error ?? '(none)'}`
+      )
+      if (result.updateAvailable) {
+        console.log('[Renderer] Opening update dialog')
+        setUpdateResult(result)
+      }
+    })
+    // Never let a failed IPC invoke (e.g. no handler, bridge error) pass
+    // silently — the dialog would just never appear with no trace.
+    .catch((err) => {
+      console.error('[Renderer] Update check failed:', err)
     })
     return () => {
       cancelled = true

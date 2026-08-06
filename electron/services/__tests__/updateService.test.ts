@@ -10,6 +10,7 @@ function jsonResponse(json: unknown, ok = true, status = 200): Response {
   return {
     ok,
     status,
+    text: async () => (typeof json === 'string' ? json : JSON.stringify(json)),
     json: async () => json
   } as unknown as Response
 }
